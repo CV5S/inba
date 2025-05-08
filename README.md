@@ -1,4 +1,4 @@
-# inba
+# 説明
 [県立印旛諸根具足センター](https://cv5s.github.io/inba/)用のレポジトリ。
 
 # License
