@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <title>威力表シミュレータ</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans JP', sans-serif;
+      line-height: 1.5;
+      background: #121212;  
+      color: #e0e0e0;      
+    }
+
+    h1 {
+      text-align: center;
+      margin: 40px 0 20px;
+      font-size: 2.5rem;
+      color: #e0e0e0;       
+    }
+
+    sup {
+      font-size: 0.75em;
+      line-height: 1;
+      vertical-align: super;
+    }
+
+    a {
+      color: #d2691e;
+    }
+    
+    a:hover {
+      color: #ffa500;
+    }
+
+    .content {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .calc-tool {
+      margin-top: 1.5rem;
+      margin: 0 auto;
+      text-align: center;
+    }
+    .calc-tool label.param-label {
+      display: inline-block;
+      width: 300px;
+      margin-bottom: 0.5rem;
+      vertical-align: middle;
+      text-align: left;
+    }
+    .calc-tool input {
+      width: 80px;
+      padding: 4px;
+      background: #2a2a2a;
+      color: #e0e0e0;
+      border: 1px solid #444;
+      border-radius: 4px;
+    }
+    .calc-tool button {
+      padding: 4px 12px;
+      background: #333;
+      color: #e0e0e0;
+      border: 1px solid #555;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .calc-tool button:hover {
+      background: #444;
+    }
+
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 88px;
+      height: 25px;
+      vertical-align: middle;
+      user-select: none;
+    }
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .slider {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: #ccc;
+      border-radius: 15px;
+      transition: 0.3s;
+    }
+    .slider::before {
+      content: "";
+      position: absolute;
+      height: 20px; width: 20px;
+      left: 2.5px; top: 2.2px; right: 2.5px; bottom: 2.0px;
+      background: white;
+      border-radius: 50%;
+      transition: transform 0.3s;
+    }
+    .toggle-label {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 0.75rem;
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+    .toggle-label.on  { left: 8px;  opacity: 0; color: #fff; }
+    .toggle-label.off { right: 8px; opacity: 1; color: #333; }
+    .toggle-switch input:checked + .slider {
+      background: #d2691e;
+    }
+    .toggle-switch input:checked + .slider::before {
+      transform: translateX(63px);
+    }
+    .toggle-switch input:checked ~ .toggle-label.on  { opacity: 1; }
+    .toggle-switch input:checked ~ .toggle-label.off { opacity: 0; }
+
+    .toggleshow {
+      background-color: #d2691e52;
+      padding: 0.2rem;
+      margin-top: 5px;
+      margin-bottom: 5px;
+      border-radius: 4px;
+      transition: background-color 0.3s;
+    }
+
+    #results-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+    #results-table th,
+    #results-table td {
+      border: 1px solid #444;
+      padding: 4px 8px;
+      text-align: right;
+    }
+    #results-table th {
+      background: #262626;
+    }
+
+    .watermark {
+      position: fixed;            
+      bottom: 8px;
+      right: 12px;
+      font-size: 0.75rem;       
+      color: rgba(255, 255, 255, 0.35);  
+      user-select: none;        
+    }
+
+    #resultChart {
+      display: block;
+      width: 100%;
+      max-width: 800px;
+      height: 400px;
+      margin: 2rem auto 0;
+    }
+
+    #footnotes {
+      font-size: 0.85rem;
+      color: #ccc;
+    }
+    #footnotes ol {
+      margin: 0;
+      padding-left: 1.5rem;
+    }
+    #footnotes li {
+      margin: 0.5rem 0;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- 説明 -->
+  <h1>威力表シミュレータ</h1>
+  <div class="content">
+    <p>ソードワールド2.5での、威力表を用いたダメージ計算を解析するためのツールです。ランダムにダメージ計算をシミュレートする試行を繰り返すことで、打点の期待値や分布を確認することができます。</p>
+    <p>本シミュレータはセッション準備段階におけるキャラビルド設計の支援や、GMによるゲームバランス調整のための参考などの利用を想定して開発されたものであり、実際のセッション中に使用することは推奨しません。</p>
+    <p>履歴をリセットしたい場合はページを更新してください。</p>
+
+    <div style="text-align: right;">
+      <label class="param-label">発展機能: 対抗判定モード&emsp;</label>
+        <label class="toggle-switch">
+          <input type="checkbox" id="toggleswitchVs">
+          <span class="slider"></span>
+          <span class="toggle-label on">はい</span>
+          <span class="toggle-label off">いいえ</span>
+        </label><br>
+    </div>
+
+    <div class="toggleshow" style="display: none;">
+      <p>「命中判定 vs 回避判定」、「魔法行使判定 vs 精神抵抗力判定」などの対抗判定の突破率も計算に含めます。<br>命中判定の自動失敗などについても考慮するため、期待値の単純な比較はできないことに注意してください。</p>
+    </div>
+    
+
+    <!-- パラメータ入力部 -->
+    <br>
+    <div class="calc-tool">
+      <label class="param-label">威力 </label>
+      <input type="number" id="inputKeynum" step="1" min="0" max="100" value="20" required
+        oninvalid="this.setCustomValidity('0以上100以下の整数を入力してください')"
+        oninput="this.setCustomValidity('')"
+        onblur="this.reportValidity()">
+      <br>
+      <label class="param-label">C値 <sup><a href="#fn1" id="ref1">[1]</a></sup></label>
+      <input type="number" id="inputC" step="1" min="3" max="13" value="10" required
+        oninvalid="this.setCustomValidity('3以上13以下の整数を入力してください')"
+        oninput="this.setCustomValidity('')"
+        onblur="this.reportValidity()">
+      <br>
+      <label class="param-label">追加ダメージ </label>
+      <input type="number" id="inputDamagebonus" step="1" min="0" value="5" required
+        oninvalid="this.setCustomValidity('0以上の整数を入力してください')"
+        oninput="this.setCustomValidity('')"
+        onblur="this.reportValidity()">
+      <br>
+      <label class="param-label">敵ダメージ軽減 </label>
+      <input type="number" id="inputArmor" step="1" min="0" value="2" required
+        oninvalid="this.setCustomValidity('0以上の整数を入力してください')"
+        oninput="this.setCustomValidity('')"
+        onblur="this.reportValidity()">
+      <br>
+      <label class="param-label">1回目だけの出目修正(クリレイ系) <sup><a href="#fn2" id="ref2">[2]</a></sup></label>
+      <input type="number" id="inputCritray" step="1" min="0" value="0" required
+        oninvalid="this.setCustomValidity('0以上の整数を入力してください')"
+        oninput="this.setCustomValidity('')"
+        onblur="this.reportValidity()">
+      <br>
+      <label class="param-label">恒久的な出目修正(必殺攻撃系) <sup><a href="#fn3" id="ref3">[3]</a></sup></label>
+      <input type="number" id="inputHissatsu" step="1" min="0" value="0" required
+        oninvalid="this.setCustomValidity('0以上の整数を入力してください')"
+        oninput="this.setCustomValidity('')"
+        onblur="this.reportValidity()">
+      <br>
+      <label class="param-label">回転ごとの威力上昇(首切り刀系) <sup><a href="#fn4" id="ref4">[4]</a></sup></label>
+      <input type="number" id="inputKubikiri" step="1" min="0" value="0" required
+        oninvalid="this.setCustomValidity('0以上の整数を入力してください')"
+        oninput="this.setCustomValidity('')"
+        onblur="this.reportValidity()">
+      <br>
+      <div class="togglehide" style="display: show;">
+        <label class="param-label">半減 <sup><a href="#fn5" id="ref5">[5]</a></sup></label>
+        <label class="toggle-switch">
+          <input type="checkbox" id="switchHalf">
+          <span class="slider"></span>
+          <span class="toggle-label on">はい</span>
+          <span class="toggle-label off">いいえ</span>
+        </label><br>
+      </div>
+      <label class="param-label" for="inputHalfExtra">半減されない追加ダメージ </label>
+      <input type="number" id="inputHalfExtra" step="1" min="0" value="0" required
+        oninvalid="this.setCustomValidity('0以上の整数を入力してください')"
+        oninput="this.setCustomValidity('')"
+        onblur="this.reportValidity()">
+      <br>
+      <div class="toggleshow" style="display: none;">
+        <label class="param-label">行使基準値の優越 <sup><a href="#fn6" id="ref6">[6]</a></sup></label>
+          <input type="number" id="inputHitbonus" step="1" value="0" required
+            oninvalid="this.setCustomValidity('整数を入力してください')"
+            oninput="this.setCustomValidity('')"
+            onblur="this.reportValidity()">
+        <br>
+        <label class="param-label">固定値を用いるか <sup><a href="#fn7" id="ref7">[7]</a></sup></label>
+        <label class="toggle-switch">
+          <input type="checkbox" id="switchFix">
+          <span class="slider"></span>
+          <span class="toggle-label on">はい</span>
+          <span class="toggle-label off">いいえ</span>
+        </label><br>
+        <label class="param-label">抵抗: </label>
+        <label class="toggle-switch">
+          <input type="checkbox" id="switchEvachalf">
+          <span class="slider"></span>
+          <span class="toggle-label on">半減</span>
+          <span class="toggle-label off">消滅</span>
+        </label><br>
+        <label class="param-label">半減時クリティカル </label>
+        <label class="toggle-switch">
+          <input type="checkbox" id="halfCrit" checked>
+          <span class="slider"></span>
+          <span class="toggle-label on">有効</span>
+          <span class="toggle-label off">無効</span>
+        </label><br>
+      </div>
+      <label class="param-label">試行回数 </label>
+      <input type="number" id="inputTrials" step="1" min="1" value="100000" required
+        oninvalid="this.setCustomValidity('最低でも1以上の整数を入力してください')"
+        oninput="this.setCustomValidity('')"
+        onblur="this.reportValidity()">
+      <br>
+
+      <button id="calc-btn">計算</button>
+    </div>
+
+    <!-- 結果表示部 -->
+    <table id="results-table">
+      <thead>
+        <tr><th>#</th><th>BCDiceコマンド</th><th>期待値</th><th>標準偏差</th><th>10%</th><th>25%</th><th>50%</th><th>75%</th><th>90%</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <canvas id="resultChart"></canvas>
+
+    <br><br><br>
+
+    <!-- 脚注 -->
+    <section id="footnotes">
+      <hr>
+      <ol>
+        <li id="fn1">C値3~13まで対応。クリティカルなしの場合は13に。<a href="#ref1">↩︎</a></li>
+        <li id="fn2">クリティカルレイなどで得る一回目だけの出目修正。レベルではなく出目修正量を入力。特に修正がなければ0。<a href="#ref2">↩︎</a></li>
+        <li id="fn3">こちらも必殺攻撃のレベルではなく出目修正量を入力。つまりルルブの範囲内なら0か1のみ。<a href="#ref3">↩︎</a></li>
+        <li id="fn4">首切り刀の場合は5。<a href="#ref4">↩︎</a></li>
+        <li id="fn5">威力表・ボーナス由来のダメージを半減(端数切り上げ)。ダメージ軽減効果は半減されない。クリティカルを無効化したい場合は別途C値を13に。<a href="#ref5">↩︎</a></li>
+        <li id="fn6">命中力、回避力などの、2dで行う判定に加えるボーナスについて、能動側が受動側にどれだけ優越しているか。例えば攻撃者の命中力が「14」で対称の回避力が「12」ならここには「2」を、攻撃者の魔法行使基準値が「19」で対称の精神抵抗力が「22」なら「-3」を入れる。同値なら「0」。<a href="#ref6">↩︎</a></li>
+        <li id="fn7">判定処理の軽減のために固定値(2dを振って7が出たと仮定するアレ)を用いるか。ところで、固定値による処理を用いる場合、能動側の出目を固定しても受動側の出目を固定しても確率的な結果は変わらない。(<a href="https://obsolete.hatenadiary.com/entry/2024/09/06/212318#%E5%AF%BE%E6%8A%97%E5%88%A4%E5%AE%9A" target="_blank" rel="noopener">[参考記事]</a>)<a href="#ref7">↩︎</a></li>
+      </ol>
+    </section>
+
+    <br>
+    <br>
+
+  </div>
+
+  <div class="watermark">
+    良性腫瘍 / 
+    <a href="https://github.com/CV5S/inba" target="_blank" rel="noopener">
+      Hosted on GitHub Pages
+    </a>
+  </div>
+
+  <!-- 儀式 -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <script defer>
+    // 威力表データ、迫真の二次元配列ベタ打ち
+    const damage_table_matrix = [
+      // 0~10
+      [0, 0, 0, 1, 2, 2, 3, 3, 4, 4],
+      [0, 0, 0, 1, 2, 3, 3, 3, 4, 4],
+      [0, 0, 0, 1, 2, 3, 4, 4, 4, 4],
+      [0, 0, 1, 1, 2, 3, 4, 4, 4, 5],
+      [0, 0, 1, 2, 2, 3, 4, 4, 5, 5],
+      [0, 1, 1, 2, 2, 3, 4, 5, 5, 5],
+      [0, 1, 1, 2, 3, 3, 4, 5, 5, 5],
+      [0, 1, 1, 2, 3, 4, 4, 5, 5, 6],
+      [0, 1, 2, 2, 3, 4, 4, 5, 6, 6],
+      [0, 1, 2, 3, 3, 4, 4, 5, 6, 7],
+      [1, 1, 2, 3, 3, 4, 5, 5, 6, 7],
+      // 11~20
+      [1, 2, 2, 3, 3, 4, 5, 6, 6, 7],
+      [1, 2, 2, 3, 4, 4, 5, 6, 6, 7],
+      [1, 2, 3, 3, 4, 4, 5, 6, 7, 7],
+      [1, 2, 3, 4, 4, 4, 5, 6, 7, 8],
+      [1, 2, 3, 4, 4, 5, 5, 6, 7, 8],
+      [1, 2, 3, 4, 4, 5, 6, 7, 7, 8],
+      [1, 2, 3, 4, 5, 5, 6, 7, 7, 8],
+      [1, 2, 3, 4, 5, 6, 6, 7, 7, 8],
+      [1, 2, 3, 4, 5, 6, 7, 7, 8, 9],
+      [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+      // 21~30
+      [1, 2, 3, 4, 6, 6, 7, 8, 9, 10],
+      [1, 2, 3, 5, 6, 6, 7, 8, 9, 10],
+      [2, 2, 3, 5, 6, 7, 7, 8, 9, 10],
+      [2, 3, 4, 5, 6, 7, 7, 8, 9, 10],
+      [2, 3, 4, 5, 6, 7, 8, 8, 9, 10],
+      [2, 3, 4, 5, 6, 8, 8, 9, 9, 10],
+      [2, 3, 4, 6, 6, 8, 8, 9, 9, 10],
+      [2, 3, 4, 6, 6, 8, 9, 9, 10, 10],
+      [2, 3, 4, 6, 7, 8, 9, 9, 10, 10],
+      [2, 4, 4, 6, 7, 8, 9, 10, 10, 10],
+      // 31~40
+      [2, 4, 5, 6, 7, 8, 9, 10, 10, 11],
+      [3, 4, 5, 6, 7, 8, 10, 10, 10, 11],
+      [3, 4, 5, 6, 8, 8, 10, 10, 10, 11],
+      [3, 4, 5, 6, 8, 9, 10, 10, 11, 11],
+      [3, 4, 5, 7, 8, 9, 10, 10, 11, 12],
+      [3, 5, 5, 7, 8, 9, 10, 11, 11, 12],
+      [3, 5, 6, 7, 8, 9, 10, 11, 12, 12],
+      [3, 5, 6, 7, 8, 10, 10, 11, 12, 13],
+      [4, 5, 6, 7, 8, 10, 11, 11, 12, 13],
+      [4, 5, 6, 7, 9, 10, 11, 11, 12, 13],
+      // 41~50
+      [4, 6, 6, 7, 9, 10, 11, 12, 12, 13],
+      [4, 6, 7, 7, 9, 10, 11, 12, 13, 13],
+      [4, 6, 7, 8, 9, 10, 11, 12, 13, 14],
+      [4, 6, 7, 8, 10, 10, 11, 12, 13, 14],
+      [4, 6, 7, 9, 10, 10, 11, 12, 13, 14],
+      [4, 6, 7, 9, 10, 10, 12, 13, 13, 14],
+      [4, 6, 7, 9, 10, 11, 12, 13, 13, 15],
+      [4, 6, 7, 9, 10, 12, 12, 13, 13, 15],
+      [4, 6, 7, 10, 10, 12, 12, 13, 14, 15],
+      [4, 6, 8, 10, 10, 12, 12, 13, 15, 15],
+      // 51~60
+      [5, 7, 8, 10, 10, 12, 12, 13, 15, 15],
+      [5, 7, 8, 10, 11, 12, 12, 13, 15, 15],
+      [5, 7, 9, 10, 11, 12, 12, 14, 15, 15],
+      [5, 7, 9, 10, 11, 12, 13, 14, 15, 16],
+      [5, 7, 10, 10, 11, 12, 13, 14, 16, 16],
+      [5, 8, 10, 10, 11, 12, 13, 15, 16, 16],
+      [5, 8, 10, 11, 11, 12, 13, 15, 16, 17],
+      [5, 8, 10, 11, 12, 12, 13, 15, 16, 17],
+      [5, 9, 10, 11, 12, 12, 14, 15, 16, 17],
+      [5, 9, 10, 11, 12, 13, 14, 15, 16, 18],
+      // 61~70
+      [5, 9, 10, 11, 12, 13, 14, 16, 17, 18],
+      [5, 9, 10, 11, 13, 13, 14, 16, 17, 18],
+      [5, 9, 10, 11, 13, 13, 15, 17, 17, 18],
+      [5, 9, 10, 11, 13, 14, 15, 17, 17, 18],
+      [5, 9, 10, 12, 13, 14, 15, 17, 18, 18],
+      [5, 9, 10, 12, 13, 15, 15, 17, 18, 19],
+      [5, 9, 10, 12, 13, 15, 16, 17, 19, 19],
+      [5, 9, 10, 12, 14, 15, 16, 17, 19, 19],
+      [5, 9, 10, 12, 14, 16, 16, 17, 19, 19],
+      [5, 9, 10, 12, 14, 16, 17, 18, 19, 19],
+      // 71~80
+      [5, 9, 10, 13, 14, 16, 17, 18, 19, 20],
+      [5, 9, 10, 13, 15, 16, 17, 18, 19, 20],
+      [5, 9, 10, 13, 15, 16, 17, 19, 20, 21],
+      [6, 9, 10, 13, 15, 16, 18, 19, 20, 21],
+      [6, 9, 10, 13, 16, 16, 18, 19, 20, 21],
+      [6, 9, 10, 13, 16, 17, 18, 19, 20, 21],
+      [6, 9, 10, 13, 16, 17, 18, 20, 21, 22],
+      [6, 9, 10, 13, 16, 17, 19, 20, 22, 23],
+      [6, 9, 10, 13, 16, 18, 19, 20, 22, 23],
+      [6, 9, 10, 13, 16, 18, 20, 21, 22, 23],
+      // 81~90
+      [6, 9, 10, 13, 17, 18, 20, 21, 22, 23],
+      [6, 9, 10, 14, 17, 18, 20, 21, 22, 24],
+      [6, 9, 11, 14, 17, 18, 20, 21, 23, 24],
+      [6, 9, 11, 14, 17, 19, 20, 21, 23, 24],
+      [6, 9, 11, 14, 17, 19, 21, 22, 23, 24],
+      [7, 10, 11, 14, 17, 19, 21, 22, 23, 25],
+      [7, 10, 12, 14, 17, 19, 21, 22, 24, 25],
+      [7, 10, 12, 14, 18, 19, 21, 22, 24, 25],
+      [7, 10, 12, 15, 18, 19, 21, 22, 24, 26],
+      [7, 10, 12, 15, 18, 19, 21, 23, 25, 26],
+      // 91~100
+      [7, 11, 13, 15, 18, 19, 21, 23, 25, 26],
+      [7, 11, 13, 15, 18, 20, 21, 23, 25, 27],
+      [8, 11, 13, 15, 18, 20, 22, 23, 25, 27],
+      [8, 11, 13, 16, 18, 20, 22, 23, 25, 28],
+      [8, 11, 14, 16, 18, 20, 22, 23, 26, 28],
+      [8, 11, 14, 16, 19, 20, 22, 23, 26, 28],
+      [8, 12, 14, 16, 19, 20, 22, 24, 26, 28],
+      [8, 12, 15, 16, 19, 20, 22, 24, 27, 28],
+      [8, 12, 15, 17, 19, 20, 22, 24, 27, 29],
+      [8, 12, 15, 18, 19, 20, 22, 24, 27, 30]
+    ];
+
+    // 威力表データ参照
+    function damage_table(K, dices) {
+      if (K < 0 || K > 100) return 0;
+      if (dices < 3 || dices > 12) return 0;
+      return damage_table_matrix[K][dices-3] 
+    };
+
+    // 2d6
+    function roll_2d6() {
+      return Math.floor(Math.random() * 6) + 1 + Math.floor(Math.random() * 6) + 1;
+    };
+
+    // 回転を考慮できる単発のクリティカルシミュレーション
+    function CritSim(K, C, bonus, armor, critbonus, hissatsu, kubikiri, half, halfExtra) {
+      let sum = 0;
+      dices = Math.min(roll_2d6()+critbonus, 12);
+
+      if (dices == 2) {
+        return sum;
+      };
+
+      dices = Math.min(dices+hissatsu, 12);
+
+      if (dices < C) {
+        sum += damage_table(K, dices)
+      } else {
+        sum += damage_table(K, dices);
+        sum += CritSim(K+kubikiri, C, 0, 0, 0, hissatsu, kubikiri, 0, 0);
+      }
+
+      sum += bonus;
+      if (half > 0) {
+        sum = Math.ceil(sum / 2);
+      }
+
+      sum += halfExtra;
+      sum -= armor;
+      if (sum < 0) sum = 0;
+
+      return sum;
+    };
+
+    // クリティカル試行の繰り返しと関連する統計量の計算
+    function statsmaker(K, C, bonus, armor, critbonus, hissatsu, kubikiri, half, halfExtra, trials) {
+      let result;
+      let results = [];
+
+      for (let i = 0; i < trials; i++) {
+        result = CritSim(K, C, bonus, armor, critbonus, hissatsu, kubikiri, half, halfExtra);
+        results.push(result);
+      }
+
+      results.sort((a, b) => a - b)
+
+      const mean = results.reduce((acc, val) => acc + val, 0) / trials;
+      const stddev = Math.sqrt(results.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0) / trials);
+      const q1 = results[Math.floor(trials * 0.1)];
+      const q2 = results[Math.floor(trials * 0.25)];
+      const q3 = results[Math.floor(trials * 0.5)];
+      const q4 = results[Math.floor(trials * 0.75)];
+      const q5 = results[Math.floor(trials * 0.9)];
+
+      return [mean, stddev, q1, q2, q3, q4, q5, results];
+    };
+
+    function vs_statsmaker(K, C, bonus, armor, critbonus, hissatsu, kubikiri, halfExtra, trials, Hitbonus, Fix, Evachalf, halfCrit) {
+      let result;
+      let results = [];
+      let wins = 0;
+
+      for (let i = 0; i < trials; i++) {
+        const winflag = winlose(Hitbonus, Fix);
+
+        if (winflag == 1) {
+          wins++;
+          result = CritSim(K, C, bonus, armor, critbonus, hissatsu, kubikiri, 0, halfExtra);
+          results.push(result);
+
+        } else if (winflag == -1) {
+          result = 0;
+          results.push(result); 
+
+        } else if (Evachalf == 0) {
+          result = 0;
+          results.push(result); 
+
+        } else if (Evachalf == 1 && halfCrit == 1) {
+          result = CritSim(K, C, bonus, armor, critbonus, hissatsu, kubikiri, 1, halfExtra);
+          results.push(result); 
+
+        } else if (Evachalf == 1 && halfCrit == 0) {
+          result = CritSim(K, 13, bonus, armor, critbonus, hissatsu, kubikiri, 1, halfExtra);
+          results.push(result); 
+        };
+
+      };
+
+      const winrates = (wins / trials) * 100;
+      results.sort((a, b) => a - b)
+
+      const mean = results.reduce((acc, val) => acc + val, 0) / trials;
+      const stddev = Math.sqrt(results.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0) / trials);
+      const q1 = results[Math.floor(trials * 0.1)];
+      const q2 = results[Math.floor(trials * 0.25)];
+      const q3 = results[Math.floor(trials * 0.5)];
+      const q4 = results[Math.floor(trials * 0.75)];
+      const q5 = results[Math.floor(trials * 0.9)];
+
+      return [mean, stddev, q1, q2, q3, q4, q5, results, winrates];
+    };
+
+    // 入力パラメータを用いたBCDice準拠のコマンド文字列生成
+    function BCDcommandgenerator(K, C, bonus, armor, critbonus, hissatsu, kubikiri, half, halfExtra) {
+      let command = `K${K}[${C}]`;
+
+      if (bonus > 0) {
+        command += `+${bonus}`;
+      }
+      if (half > 0) {
+        command += `H`;
+      }
+      if (halfExtra > 0) {
+        command += `+`;
+        
+        if (armor > 0) {
+          command += `(${halfExtra}`;
+        } else {
+          command += `${halfExtra}`;
+        }
+      }
+      if (armor > 0) {
+        command += `-${armor}`;
+
+        if (halfExtra > 0) {
+          command += `)`;
+        }
+      }
+      if (critbonus > 0) {
+        command += `$+${critbonus}`;
+      }
+      if (hissatsu > 0) {
+        command += `#${hissatsu}`;
+      }
+      if (kubikiri > 0) {
+        command += `r${kubikiri}`;
+      }
+      return command;
+    };
+
+    // 対抗判定の勝敗計算
+    function winlose(Hitbonus, Fix) {
+      let Hit2d = roll_2d6();
+      let Evac2d = 7;
+
+      if (Fix == 0) {
+        Evac2d = roll_2d6();
+      };
+
+      if (Hit2d == 2) {
+        return -1;
+      } else if (Evac2d == 12) {
+        return 0;
+      } else if (Evac2d == 2 || Hit2d == 12) {
+        return 1;
+      } else if (Hit2d + Hitbonus > Evac2d) {
+        return 1;
+      } else {
+        return 0;
+      };
+    };
+
+    // ヒストグラムの初期化
+    const ctx = document.getElementById('resultChart').getContext('2d');
+    const chart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: []
+      },
+      options: {
+        scales: {
+          x: { title: { display: true, text: 'ダメージ (出現頻度 0.1% 以上の項まで表示)' } },
+          y: {
+            title: { display: true, text: '出現頻度 (%)' },
+            beginAtZero: true,
+            ticks: { callback: v => v + '%' }
+          }
+        }
+      }
+    });
+
+    // 儀式
+    const btn = document.getElementById('calc-btn');
+    const tbody = document.querySelector('#results-table tbody');
+    let counter = 1;
+    const allResults = [];
+
+    // 表示切替トグル
+    const switchflag = document.getElementById('toggleswitchVs');
+
+    switchflag.addEventListener('change', () => {
+      const vsmode  = document.querySelectorAll('.toggleshow');
+      vsmode.forEach(el => {
+        el.style.display = switchflag.checked ? 'block' : 'none';
+      });
+      const vshide  = document.querySelectorAll('.togglehide');
+      vshide.forEach(el => {
+        el.style.display = switchflag.checked ? 'none' : 'block';
+      });
+    });
+
+    // 計算ボタンのクリックイベント
+    btn.addEventListener('click', () => {
+      // パラメータの取得
+      const K = parseFloat(document.getElementById('inputKeynum').value) || 0;
+      const C = parseFloat(document.getElementById('inputC').value) || 0;
+      const bonus = parseFloat(document.getElementById('inputDamagebonus').value) || 0;
+      const armor = parseFloat(document.getElementById('inputArmor').value) || 0;
+      const critbonus = parseFloat(document.getElementById('inputCritray').value) || 0;
+      const hissatsu = parseFloat(document.getElementById('inputHissatsu').value) || 0;
+      const kubikiri = parseFloat(document.getElementById('inputKubikiri').value) || 0;
+      const half = document.getElementById('switchHalf').checked ? 1 : 0;
+      const halfExtra = parseFloat(document.getElementById('inputHalfExtra').value) || 0;
+      const trials = parseFloat(document.getElementById('inputTrials').value) || 0;
+      const switchVs = document.getElementById('toggleswitchVs').checked ? 1 : 0;  
+      const Hitbonus = parseFloat(document.getElementById('inputHitbonus').value) || 0;
+      const Fix = document.getElementById('switchFix').checked ? 1 : 0;
+      const Evachalf = document.getElementById('switchEvachalf').checked ? 1 : 0;
+      const halfCrit = document.getElementById('halfCrit').checked ? 1 : 0;
+
+
+      // シミュレーション実行
+      let mean, stddev, q1, q2, q3, q4, q5, results, winrates;
+
+      if (switchVs == 0) {
+        [mean, stddev, q1, q2, q3, q4, q5, results] = statsmaker(K, C, bonus, armor, critbonus, hissatsu, kubikiri, half, halfExtra, trials);
+      } else {
+        [mean, stddev, q1, q2, q3, q4, q5, results, winrates] = vs_statsmaker(K, C, bonus, armor, critbonus, hissatsu, kubikiri, halfExtra, trials, Hitbonus, Fix, Evachalf, halfCrit);
+      };
+      
+      console.log(results);
+
+      let commandtext;
+      if (switchVs == 0) {
+        commandtext = BCDcommandgenerator(K, C, bonus, armor, critbonus, hissatsu, kubikiri, half, halfExtra);
+      } else {
+        commandtext = BCDcommandgenerator(K, C, bonus, armor, critbonus, hissatsu, kubikiri, 0, halfExtra);
+      }
+      
+      allResults.push(results);
+
+      //　テーブルの更新
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${counter++}</td><td>${commandtext}</td><td>${mean.toFixed(4)}</td><td>${stddev.toFixed(4)}</td><td>${q1}</td><td>${q2}</td><td>${q3}</td><td>${q4}</td><td>${q5}</td>`;
+      tbody.appendChild(tr);
+
+      if (switchVs == 1) {
+        const tr2 = document.createElement('tr');
+        tr2.innerHTML = `<td>対抗判定</td><td>突破率: ${winrates.toFixed(2)}%</td><td>行使: ${Hitbonus}</td><td>判定: ${Fix === 1 ? '固定' : '2d'}</td><td>抵抗: ${Evachalf === 1 ? '半減' : '消滅'}</td><td>半減クリ: ${halfCrit === 1 ? '有効' : '無効'}</td>`;
+        tbody.appendChild(tr2);
+      }
+
+      // ヒストグラムの更新
+      const all = allResults.flat();
+      const min = all.reduce((a, b) => (b < a ? b : a), Infinity);
+      const max = all.reduce((a, b) => (b > a ? b : a), -Infinity);
+
+      const bins = [];
+      for (let v = min; v <= max; v++) bins.push(v);
+
+      const labelsFull = bins.map(v => v.toString());
+
+      const datasetsRaw = allResults.map((resArr, idx) => {
+        const counts = bins.map(() => 0);
+        resArr.forEach(v => { counts[v - min]++; });
+        const pcts = counts.map(c => (c / resArr.length) * 100);
+        return {
+          label: `試行#${idx + 1}`,
+          data: pcts,
+          fill: false,
+          tension: 0.1,
+          borderColor: `hsl(${(idx * 60) % 360},70%,60%)`,
+          borderWidth: 2,
+          pointRadius: 2,
+          pointHoverRadius: 3,
+        };
+      });
+
+      const threshold = 0.1;
+      let lastIdx = 0;
+      datasetsRaw.forEach(ds => {
+        ds.data.forEach((pct, i) => {
+          if (pct > threshold && i > lastIdx) lastIdx = i;
+        });
+      });
+
+      chart.data.labels = labelsFull.slice(0, lastIdx + 1);
+
+      chart.data.datasets = datasetsRaw.map(ds => ({
+        ...ds,
+        data: ds.data.slice(0, lastIdx + 1)
+      }));
+
+      chart.update();
+      
+    });
+
+  </script>
+</body>
+</html>
