@@ -454,7 +454,8 @@
 
     // 威力表データ参照
     function damage_table(K, dices) {
-      if (K < 0 || K > 100) return 0;
+      if (K < 0) return 0;
+      if (K > 100) K = 100;
       if (dices < 3 || dices > 12) return 0;
       return damage_table_matrix[K][dices-3] 
     };
