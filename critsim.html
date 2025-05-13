@@ -468,13 +468,13 @@
     // 回転を考慮できる単発のクリティカルシミュレーション
     function CritSim(K, C, bonus, armor, critbonus, hissatsu, kubikiri, half, halfExtra) {
       let sum = 0;
-      dices = Math.min(roll_2d6()+critbonus, 12);
+      dices = roll_2d6();
 
       if (dices == 2) {
         return sum;
       };
 
-      dices = Math.min(dices+hissatsu, 12);
+      dices = Math.min(dices+hissatsu+critbonus, 12);
 
       if (dices < C) {
         sum += damage_table(K, dices)
