@@ -45,6 +45,28 @@ sup {
   vertical-align: super;
 }
 
+footer {
+  position: fixed;
+  bottom: 8px;
+  left: 0;
+  width: 100%;
+  pointer-events: none;
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.35);
+}
+
+.footer-center {
+  text-align: center;
+  pointer-events: auto;
+}
+
+.footer-right {
+  position: fixed;
+  right: 12px;
+  bottom: 8px;
+  pointer-events: auto;
+}
+
 #footnotes {
   font-size: 0.85rem;
   color: #ccc;
