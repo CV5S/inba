@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>進行表ジェネレータ</title>
+
+  <!-- site common -->
+  <link rel="stylesheet" href="/inba/assets/css/common.css" />
+
+  <style>
+    /* 追加ぶんだけ最小。共通CSSの雰囲気は維持 */
+    .panel { margin: 12px 0; padding: 12px; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    label { display: inline-flex; gap: 8px; align-items: center; }
+
+    input[type="time"], input[type="text"], input[type="number"] {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 8px;
+      padding: 8px 10px;
+      color: #fff;
+    }
+
+    /* Prefer the dark UI for native time pickers (where supported) */
+    input[type="time"] { color-scheme: dark; }
+
+    /* Wrap for time input + custom button */
+    .timeWrap { position: relative; display: inline-flex; align-items: center; }
+    .timeWrap input[type="time"] { padding-right: 40px; } /* room for custom button */
+
+    /* Hide native picker icon (we provide a custom one) */
+    input[type="time"]::-webkit-calendar-picker-indicator { opacity: 0; width: 0; height: 0; display: none; }
+
+    /* Custom picker button */
+    .timePickerBtn {
+      position: absolute;
+      right: 6px;
+      width: 30px;
+      height: 30px;
+      border-radius: 6px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.06);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      cursor: pointer;
+      padding: 0;
+    }
+    .timePickerBtn:hover { background: rgba(255,255,255,0.1); }
+
+    @media (max-width: 420px) {
+      .timeWrap input[type="time"] { padding-right: 34px; }
+      .timePickerBtn { right: 4px; width: 26px; height: 26px; border-radius: 5px; }
+    }
+    input[type="number"] { width: 80px; }
+    input[type="text"] { width: min(450px, 100%); }
+
+    input[type="color"] {
+      width: 54px;
+      height: 34px;
+      padding: 0;
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 8px;
+      background: transparent;
+    }
+
+    button {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.18);
+      color: #fff;
+      padding: 8px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    button:hover { background: rgba(255,255,255,0.12); }
+    button.danger { border-color: rgba(255,0,0,0.35); }
+    button.primary { border-color: rgba(80,180,255,0.55); }
+
+    .hint { opacity: 0.85; font-size: 0.95em; }
+    .muted { opacity: 0.7; }
+
+    /* Event list */
+    #eventList { list-style: none; padding: 0; margin: 0; }
+    .eventItem {
+      display: grid;
+      grid-template-columns: 26px minmax(0, 1fr) 110px 90px;
+      gap: 10px;
+      align-items: center;
+      padding: 10px;
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 10px;
+      margin: 8px 0;
+      background: rgba(255,255,255,0.03);
+    }
+    .dragHandle {
+      cursor: grab;
+      user-select: none;
+      opacity: 0.8;
+      text-align: center;
+    }
+
+    .eventItem { box-sizing: border-box; }
+
+    .eventItem input[type="text"] {
+      width: 100%;
+      min-width: 0; /* grid内のはみ出し防止 */
+      box-sizing: border-box;
+    }
+
+    .durWrap input[type="number"] { width: 100%; box-sizing: border-box; }
+    .delWrap button { width: 100%; }
+
+    .durWrap { display: flex; justify-content: flex-end; }
+
+    /* ====== Output / Theme ======
+       exportAreaに CSS 変数を持たせ、JSが値を更新する
+    */
+    #exportArea {
+      --tt-bg: #0b0f14;
+      --tt-border: #2b3440;
+      --tt-text: #ffffff;
+      --tt-head: color-mix(in srgb, var(--tt-bg) 85%, var(--tt-text) 15%);
+
+      margin-top: 12px;
+      padding: 12px;
+      border: 3px solid var(--tt-border);
+      border-radius: 12px;
+      background: var(--tt-bg);
+      color: var(--tt-text);
+
+      width: fit-content;
+      max-width: 100%;
+      padding: 8px;
+    }
+
+    #outTitle { margin: 0 0 6px 0; font-size: 1.05em; }
+
+    table.tt {
+      width: auto;
+      border-collapse: separate;
+      border-spacing: 0;
+      overflow: hidden;
+      border-radius: 10px;
+      table-layout: auto;
+      border: 2px solid var(--tt-border); /* outer border to preserve rounded corners */
+    }
+    /* Draw inner grid using bottom/right borders; outer border is handled by the table itself */
+    table.tt th, table.tt td {
+      border-bottom: 2px solid var(--tt-border);
+      border-right: 2px solid var(--tt-border);
+      padding: 6px 8px; 
+      vertical-align: middle;
+      color: var(--tt-text);
+    }
+    /* Prevent doubled borders at the table's outer edges */
+    table.tt th:last-child, table.tt td:last-child { border-right: none; }
+    table.tt tr:last-child th, table.tt tr:last-child td { border-bottom: none; }
+
+    table.tt th {
+      text-align: left;
+      background: var(--tt-head);
+    }
+
+    td.timeCol { width: auto; white-space: nowrap; }
+
+    td.nameCol {
+      min-width: 80px;
+      max-width: 600px;          /* 好きな上限でOK */
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;   /* …にする */
+    }
+
+    @media (max-width: 720px) {
+      .eventItem {
+        grid-template-columns: 26px 1fr;
+        grid-template-rows: auto auto;
+      }
+      .eventItem .durWrap, .eventItem .delWrap { grid-column: 1 / -1; }
+      .eventItem .delWrap { justify-self: end; }
+    }
+  </style>
+</head>
+
+<body>
+  <h1>進行表ジェネレータ</h1>
+
+  <div class="content">
+    <p class="hint">
+      開始時刻とイベント・所要時間(分)を入力してください。2列のタイムテーブルをPNGで出力します。
+    </p>
+
+    <div class="panel">
+      <div class="row">
+        <label class="timeLabel">開始時刻
+          <span class="timeWrap">
+            <input id="startTime" type="time" value="14:00" />
+            <button type="button" class="timePickerBtn" aria-label="時刻選択" title="時刻を選択">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path d="M12 7V12.5L15.5 14.75" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M21 12A9 9 0 1 1 3 12a9 9 0 0 1 18 0z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </span>
+        </label>
+
+        <button id="btnAdd" class="primary">＋イベント追加</button>
+        <span class="muted">ドラッグで順番変更</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2 style="margin-top:0;">イベント</h2>
+      <ul id="eventList"></ul>
+    </div>
+
+    <div class="panel">
+      <h2 style="margin-top:0;">テーマ</h2>
+      <div class="row">
+        <label>背景
+          <input id="themeBg" type="color" value="#0b0f14" />
+        </label>
+        <label>枠線
+          <input id="themeBorder" type="color" value="#2b3440" />
+        </label>
+        <label>文字
+          <input id="themeText" type="color" value="#ffffff" />
+        </label>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2 style="margin-top:0;">出力</h2>
+      <div class="row">
+        <button id="btnExportPng" class="primary">PNG書き出し</button>
+        <span id="status" class="muted"></span>
+      </div>
+
+      <!-- ここをDOM→PNG化する -->
+      <div id="exportArea">
+        <h3 id="outTitle">タイムテーブル</h3>
+        <table class="tt">
+          <thead>
+            <tr>
+              <th>予定</th>
+              <th>イベント</th>
+            </tr>
+          </thead>
+          <tbody id="outBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- libs -->
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.min.js"></script>
+
+  <!-- page script -->
+  <script src="/inba/assets/js/timetable.js"></script>
+
+  <!-- site common footer injection -->
+  <script src="/inba/assets/js/common.js"></script>
+</body>
+</html>

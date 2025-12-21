@@ -83,3 +83,12 @@ footer {
 #footnotes li {
   margin: 0.5rem 0;
 }
+
+/* ===== mobile tweaks ===== */
+@media (max-width: 600px) {
+  body { margin: 12px; }                 /* 左右の余白を詰める */
+  .content { max-width: 100%; }          /* 幅制限を解除 */
+  p, li { font-size: 1.08em; line-height: 1.75; } /* 文字を大きく、行間も増やす */
+  h1 { font-size: 1.6em; }
+  h2 { font-size: 1.25em; }
+}
