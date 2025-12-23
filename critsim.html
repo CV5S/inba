@@ -2,6 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>SW2.5 威力表シミュレータ</title>
   <link rel="stylesheet" href="/inba/assets/css/common.css">
   <style>
@@ -115,6 +116,26 @@
       max-width: 800px;
       height: 400px;
       margin: 2rem auto 0;
+    }
+
+    @media (max-width: 720px) {
+      .calc-tool { padding: 0 12px; }
+      .calc-tool label.param-label {
+        display: block;
+        width: 100%;
+        margin-bottom: 0.4rem;
+      }
+      .calc-tool input {
+        width: 100%;
+        max-width: 320px;
+        box-sizing: border-box;
+      }
+      .calc-tool button {
+        width: 100%;
+        max-width: 320px;
+      }
+      .toggle-switch { width: 64px; height: 22px; }
+      .toggle-switch input:checked + .slider::before { transform: translateX(38px); }
     }
 
   </style>
