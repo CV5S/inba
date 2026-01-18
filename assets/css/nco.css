@@ -14,4 +14,7 @@
 .nco-blackbox *{
   font-size: inherit;
 }
+.nco-blackbox rt {
+  font-size: 0.6em;
+}
 .nco-blackbox a{ color:#9bdcff; }
