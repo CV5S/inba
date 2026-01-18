@@ -13,6 +13,7 @@
 }
 .nco-blackbox *{
   font-size: inherit;
+  color: inherit;
 }
 .nco-blackbox rt {
   font-size: 0.6em;
