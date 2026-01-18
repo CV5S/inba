@@ -1,8 +1,8 @@
 /* NCO Blackbox */
 .nco-blackbox{
-  background:#0f0f10;
+  background:#242425;
   color:#f2f2f2;
-  border:1px solid rgba(245,245,245,.12);
+  border:1px solid rgba(255,255,255,.12);
   border-radius:5px;
   padding:14px 16px;
   margin:16px 0;
@@ -11,10 +11,3 @@
   word-break:break-word;
 }
 .nco-blackbox a{ color:#9bdcff; }
-
-.nco-pre{
-  margin:0;
-  white-space:pre-wrap;
-  word-break:break-word;
-  font-family:inherit;
-}
