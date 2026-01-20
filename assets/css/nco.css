@@ -63,6 +63,7 @@
   border: 1px solid var(--msg-br);
   margin: 0.6rem 0;
   --avatar-size: 60px;
+  --icon-bg: #6b4ae0; /* デフォルトのビビッド色（仮） */
 }
 
 /* PCでは2列 */
@@ -79,17 +80,33 @@
   border-radius: 10px;
   overflow: hidden;
 
-  background: #1e1e22;
+  position: relative;
+  background: var(--icon-bg);
   border: 1px solid rgba(255,255,255,.35);
   box-shadow: 0 0 0 1px rgba(0,0,0,.6) inset;
 }
 
 .nco-avatar img{
-  width: 100%;
-  height: 100%;
+  width: 90%;
+  height: 90%;
+  margin: 5%;
   display: block;      /* 謎の隙間対策 */
-  object-fit: cover;   /* 正方形に収めつつ、はみ出しはトリミング */
+  object-fit: contain;   /* 正方形に収めつつ、はみ出しはトリミング */
   object-position: 50% 50%; /* 切り抜き中心。必要なら変える */
+
+  position: relative;
+  z-index: 1;
+}
+
+.nco-avatar::after{
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 2px solid rgba(255,255,255,.45);
+  box-shadow: none;
+  z-index: 2;
+  pointer-events: none;
 }
 
 /* 発言内容 */
