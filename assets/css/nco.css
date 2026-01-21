@@ -119,9 +119,9 @@
 /* 名前 */
 .nco-name{
   font-weight: 700;
-  font-size: 1.05em;
+  font-size: 1.15em;
   color: var(--name);
-  opacity: 0.9;
+  opacity: 0.8;
 }
 
 /* はてな側の影響を受けにくくする（必要最低限のリセット） */
