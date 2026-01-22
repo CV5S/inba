@@ -128,3 +128,37 @@
 .nco-log, .nco-log *{
   box-sizing: border-box;
 }
+
+@media (max-width: 600px) {
+  .nco-msg {
+    display: grid;
+    grid-template-columns: var(--avatar-size, 60px) 1fr;
+    grid-template-rows: auto auto;
+    column-gap: 10px;
+    row-gap: 6px;
+    align-items: start; /* ← center をやめる */
+  }
+
+  .nco-avatar {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .nco-name {
+    grid-column: 2;
+    grid-row: 1;
+    margin: 0;
+    line-height: 1.2;
+    align-self: end; /* ← ここが肝。下ぞろえ */
+  }
+
+  .nco-text {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    margin-top: 2px;
+  }
+
+  .nco-body {
+    display: contents;
+  }
+}
