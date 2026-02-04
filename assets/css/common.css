@@ -1,9 +1,17 @@
+:root{
+  --footer-pad-y: 8px;
+  --footer-pad-x: 12px;
+  --footer-safe: env(safe-area-inset-bottom, 0px);
+  --footer-reserve: 3.2rem; /* 本文の下に確保する高さ（だいたいでOK） */
+}
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans JP', sans-serif;
   line-height: 1.6;
   background: #121212;
   color: #e0e0e0;
+  padding-bottom: calc(var(--footer-reserve) + var(--footer-safe));
 }
 
 h1 {
@@ -45,12 +53,24 @@ sup {
   vertical-align: super;
 }
 
-footer {
+footer{
   position: fixed;
-  bottom: 8px;
   left: 0;
-  width: 100%;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+
   pointer-events: none;
+
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+
+  padding: var(--footer-pad-y) var(--footer-pad-x);
+  padding-bottom: calc(var(--footer-pad-y) + var(--footer-safe));
+
+  background: rgba(18,18,18,0.75);
+
   font-size: 0.75rem;
   color: rgba(255,255,255,0.35);
 }
@@ -60,11 +80,15 @@ footer {
   pointer-events: auto;
 }
 
-.footer-right {
-  position: fixed;
-  right: 12px;
-  bottom: 8px;
+.footer-right{
+  position: static;
+  right: auto;
+  bottom: auto;
+
   pointer-events: auto;
+  text-align: right;
+  max-width: 100%;
+  white-space: normal;
 }
 
 #footnotes {
