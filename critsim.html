@@ -138,6 +138,26 @@
       .toggle-switch input:checked + .slider::before { transform: translateX(38px); }
     }
 
+    .table-wrap {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    #results-table {
+      min-width: 680px;
+    }
+
+    @media (max-width: 720px) {
+      #results-table {
+        font-size: 0.85rem;
+      }
+      #results-table th,
+      #results-table td {
+        padding: 3px 6px;
+      }
+    }
+
   </style>
 </head>
 
@@ -265,12 +285,14 @@
     </div>
 
     <!-- 結果表示部 -->
-    <table id="results-table">
-      <thead>
-        <tr><th>#</th><th>BCDiceコマンド</th><th>期待値</th><th>標準偏差</th><th>10%</th><th>25%</th><th>50%</th><th>75%</th><th>90%</th></tr>
-      </thead>
-      <tbody></tbody>
-    </table>
+    <div class="table-wrap">
+      <table id="results-table">
+        <thead>
+          <tr><th>#</th><th>BCDiceコマンド</th><th>期待値</th><th>標準偏差</th><th>10%</th><th>25%</th><th>50%</th><th>75%</th><th>90%</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
 
     <canvas id="resultChart"></canvas>
 
